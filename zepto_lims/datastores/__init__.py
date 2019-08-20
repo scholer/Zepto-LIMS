@@ -1,3 +1,4 @@
+# Copyright 2019, Rasmus Sorensen <rasmusscholer@gmail.com>
 """
 
 We have the following objects:

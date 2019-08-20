@@ -1,0 +1,10 @@
+# This file contains a list of all known conda-installable requirements.
+# If you are using conda environments, you probably want to first install the requirements
+# in this file using `conda`, then proceed to install the remaining requirements using `pip`.
+# The "dev" and "server" requirements have been commented out, but are still listed here for reference.
+
+
+pandas
+
+# pytest
+# flask

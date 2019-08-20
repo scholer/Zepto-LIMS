@@ -1,0 +1,10 @@
+# This lists all base requirements.
+# Pandas is currently a base requirement, because it is the only implementation.
+# But once the foundational APIs of the project has settled, the plan is to make
+# alternative implementations that does not make use of Pandas.
+
+pylibdmtx
+pandas
+
+#pillow
+#opencv
