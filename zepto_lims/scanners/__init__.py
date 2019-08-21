@@ -243,7 +243,14 @@ Inventory:
 * https://github.com/WhyNotHugo/python-barcode - creates SVG barcodes using just the python standard library.
 
 
+### Other related apps:
 
+charlestondance/barcode_tube:
+* For printing a barcode with Zebra ZPL printer.
+* https://github.com/charlestondance/barcode_tube
+* https://github.com/charlestondance/barcode_tube/blob/master/main_tubes_app.py
+* Doesn't have any barcode scanner, as far as I can tell?
+    * Edit: It uses a socket connection to a VisionMate barcode reader to read barcodes.
 
 """
 

@@ -24,25 +24,45 @@ The job of a tracker is to:
 
 
 
+OBS: Pandas is absolutely NOT optimal for appending data.
+We could consider having the data in another format,
+e.g. just sqlite.
 
+Sqlite alternatives:
+
+* MongoDB
+
+Pandas alternatives:
+
+* Astropy.table
+* HDF5, HDFStore
+* CDF
+* xarray
+* python-table - https://pypi.org/project/tabel/
+* static-frame (immutable dataframes).
+* SFrame - Scalable Frames, by Graphlab Create.
+*
 
 
 """
 
+from typing import Union, Optional
 from collections import OrderedDict
 from pprint import pprint
 import pandas as pd
 
-from zepto_lims.clients.internal_df_client import InternalDfClient
+from zepto_lims.dataclients.internal_df_client import InternalDfClient
+from zepto_lims.scanners.boxscanner import barcode_pos_dict
 
 
 class TubeTrackerDf:
     """
-    Tracker class for tracking tubes - uses pandas DataFrame for handling data.
+    Tracker class for tracking tubes.
+    This implementation uses pandas DataFrame for handling data (InternalDfClient).
 
     """
 
-    def __init__(self, config=None, config_file=None):
+    def __init__(self, config: dict):
         # This should probably be a dedicated `Config` object:
         self.config = config
         self.data_client = InternalDfClient(config=config)
@@ -62,23 +82,37 @@ class TubeTrackerDf:
     def boxes_table_name(self):
         return self.tubes_table_name_fmt.format(user=self.config.get('username', 'Default'))
 
-    def get_all_tubes_data(self):
+    def get_tubes_data(self):
         """ Retrieve a pandas DataFrame with all tubes (for the currently-selected user). """
         return self.data_client.get_table(self.tubes_table_name)
 
+    def get_boxes_data(self):
+        """ Retrieve a pandas DataFrame with all tubes (for the currently-selected user). """
+        return self.data_client.get_table(self.boxes_table_name)
+
+    def save_tubes_data(self, df, flush=None):
+        """ Retrieve a pandas DataFrame with all tubes (for the currently-selected user). """
+        self.data_client.set_table(self.tubes_table_name, df, flush=flush)
+
+    def save_boxes_data(self, df, flush=None):
+        """ Retrieve a pandas DataFrame with all tubes (for the currently-selected user). """
+        self.data_client.set_table(self.boxes_table_name, df, flush=flush)
+
     def get_box_tubes(self):
-        tubes_df = self.get_all_tubes_data()
+        """ Reference function for how to group a pandas DataFrame. """
+        tubes_df = self.get_tubes_data()
         return tubes_df.groupby('boxname')
 
     def get_box_tubebarcodesets(self):
         # tubes_by_box = self.get_box_tubes()  # tubes grouped by boxes
-        tubes_df = self.get_all_tubes_data()
+        tubes_df = self.get_tubes_data()
         boxes_barcodesets = {boxname: set(group_df['barcode'].values)
                                for boxname, group_df in tubes_df.groupby('boxname')}
         return boxes_barcodesets
 
     def get_boxes_diff(self, barcodes_set):
-        tubes_df = self.get_all_tubes_data()
+        """ Calculate differences between a given set of barcodes and the boxes in the database. """
+        tubes_df = self.get_tubes_data()
         tubes_grouped_by_box = tubes_df.groupby('boxname')
         boxes_barcodesets = OrderedDict(
             {boxname: set(group_df['barcode'].values)
@@ -121,12 +155,113 @@ class TubeTrackerDf:
             print("Did not find any existng boxes.")
             return
         best_box = boxes_diff_count_df.index[0]
-        answer = input(f"Selct Box '{best_box}? [Y/n]").lower()
+        answer = input(f"Selct Box '{best_box}? [Y/n] ").lower()
         if answer and answer[0] != 'y':
             print("OK; please create a new box for the scanned tube.")
             return
         return best_box
 
-        
+    def add_box(self, boxname):
+        """ Add a new box to the boxes table.
+        This does not add any tubes.
+        """
+        df = self.get_boxes_data()
+        boxnames = df['boxname']
+        if boxname in boxnames:
+            raise ValueError(f"Boxname '{boxname}' already present in boxes table!")
+        self.data_client.append_row({'boxname': boxname})
+
+    def update_tubes_from_barcodes(
+            self, boxname: str, barcodes: Union[list, dict],
+            update_removed=True, boxname_for_removed_tubes='(missing)', mark_removed_as='(missing)',
+            flush=True
+    ):
+        """ Update the given box based on scanned barcodes in a box grid.
+
+        Args:
+            boxname: The box from which the barcodes was just scanned.
+            barcodes: The barcodes that were just scanned.
+                Eitehr a List of list of strings, representing the grid in a box.
+                Or, alternatively, a dict with {barcode: A01-position}
+            update_removed: Whether to update removed tubes.
+                (Removed tubes = tubes that were previously in the box but not anymore /
+                 with a barcode not in `barcodes`.)
+            boxname_for_removed_tubes: Explicitly set the boxname for removed tubes.
+                Special boxnames includes:
+                    (checked-out)   For tubes that I'm currently working with (so they are "checked out").
+                    (missing)       For missing tubes that I've lost track of.
+                    (removed)       For removed tubes. This is a generic label that covers
+                                    both 'missing' and 'checked-out'.
+                    (depleted)      For tubes that have been depleted.
+                    (trashed)       For tubes that have been thrown out.
+            mark_removed_as: This is for implementing a secondary way of marking the status of
+                removed tubes, e.g. by having a single ENUM 'stattus' column.
+            flush: Flush changes (typically to disk).
+
+        Returns:
+            None
+        """
+        if not barcodes:
+            print(f"Empty `barcodes` value {barcodes}. Aborting.")
+            return
+        if isinstance(barcodes, list):
+            barcodes = barcode_pos_dict(barcode_grid=barcodes)
+        tubes_df = self.get_tubes_data()
+        boxes_df = self.get_boxes_data()
+        # Sanity checks of the provided DataFrames:
+        if 'barcode' not in tubes_df:
+            print("INFO: Adding column 'barcode' to tubes_df !")
+            tubes_df['barcode'] = 'N/A'
+        if 'boxname' not in tubes_df:
+            print("INFO: Adding column 'boxname' to tubes_df !")
+            tubes_df['boxname'] = 'N/A'
+        if 'pos' not in tubes_df:
+            print("INFO: Adding column 'pos' to tubes_df !")
+            tubes_df['pos'] = 'N/A'
+        if 'boxname' not in boxes_df:
+            print("INFO: Adding column 'boxname' to tubes_df !")
+            boxes_df['boxname'] = 'N/A'
+
+        # Check that the box we are using is present in the boxes table:
+        boxnames = boxes_df['boxname']
+        if boxname not in boxnames:
+            print(f"ERROR: `boxname` '{boxname}' is not present in 'boxes' table.")
+            answer = input(f"Create new box with boxname '{boxname}'? [Yes/no/abort] ").lower()
+            if answer and answer[0] == 'a':
+                print("OK, aborting...")
+                return
+            if not answer or answer[0] != 'n':
+                self.add_box(boxname)
+
+        # Before we update the scanned barcodes, we should identify the barcodes that have
+        # been removed and update the box on these to '(missing)' or similar.
+        previous_box_barcodes = set(tubes_df['barcode'][tubes_df['boxname'] == boxname])
+        barcodes_set = set(barcodes.keys())
+        removed = previous_box_barcodes - barcodes_set
+        print(f"Removed barcodes from box '{boxname}':", sorted(removed))
+        if update_removed:
+            for barcode in removed:
+                tubes_df['boxname'].where(
+                    tubes_df['barcode'] == barcode, boxname_for_removed_tubes, inplace=True
+                )
+                tubes_df['pos'].where(tubes_df['barcode'] == barcode, 'N/A', inplace=True)
+
+        # Update 'boxname' and 'pos' for the scanned barcodes:
+        # This could perhaps also be done without a for-loop, by using `in barcodes.keys()`,
+        # tubes_df.loc[tubes_df['barcode'] in barcode, 'boxname'] = boxname
+        # or by creating a DataFrame from barcodes and then using df.update().
+        # Using df.update() probably requires using `barcode` as the index of the DataFrame.
+        for barcode, pos in barcodes.items():
+            tubes_df['boxname'].where(tubes_df['barcode'] == barcode, boxname, inplace=True)
+            tubes_df['pos'].where(tubes_df['barcode'] == barcode, pos, inplace=True)
+            # Alternative to using where:
+            # tubes_df.loc[tubes_df['barcode'] == barcode, 'boxname'] = boxname
+            # tubes_df.loc[tubes_df['barcode'] == barcode, 'pos'] = pos
+
+        # Finally, make sure to save the updated dataframes:
+        self.save_boxes_data(boxes_df, flush=flush)
+        self.save_tubes_data(tubes_df, flush=flush)
 
 
+    # def scan_box_barcodes_and_update_database(self):
+    #     # See ..apps.tubetracker_app_base.scan_and_update_box()

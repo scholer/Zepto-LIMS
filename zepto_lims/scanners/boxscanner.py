@@ -3,6 +3,12 @@
 
 Module for scanning a single box with tubes in a pre-defined pattern, e.g. 9x9 or 10x10 grid.
 
+TODO: "Aggregating" scanner, which scans multiple images, using the barcodes to relate
+TODO: barcode positions and build up the full grid of barcodes.
+TODO: This is mostly useful if it turns out to be really hard to take a single image
+TODO: from which all barcodes can be properly read.
+
+
 """
 
 import string
@@ -161,11 +167,39 @@ def alphabet_iterator(start='A', take=None):
             raise StopIteration
 
 
-def alphanumeric_grid_dict(matrix, pos_fmt="{row}{col:02}", transpose=False, col_start=1, row_start='A'):
+def barcode_pos_dict(barcode_grid, pos_fmt="{row}{col:02}", transpose=False, exclude_none=True, col_start=1):
     if transpose:
-        return {pos_fmt.format(row=row, col=col): val for col, cvals in zip(string.ascii_uppercase, matrix) for row, val in enumerate(cvals, col_start)}
+        return {val: pos_fmt.format(row=row, col=col)
+                for col, cvals in zip(string.ascii_uppercase, barcode_grid)
+                for row, val in enumerate(cvals, 1)}
     else:
-        return {pos_fmt.format(row=row, col=col): val for row, rvals in zip(string.ascii_uppercase, matrix) for col, val in enumerate(rvals, col_start)}
+        return {pos_fmt.format(row=row, col=col): val
+                for row, rvals in zip(string.ascii_uppercase, barcode_grid)
+                for col, val in enumerate(rvals, col_start)}
+
+
+def alphanumeric_grid_dict(matrix, pos_fmt="{row}{col:02}", transpose=False, col_start=1, row_start='A'):
+    """ Return a dict with {'A1-pos': value for each value in the 2D-matrix}.
+
+    Args:
+        matrix: 2D matrix, list of lists.
+        pos_fmt: How to format each position (e.g. 'A1' or 'A01').
+        transpose: Transpose columns and rows (flip the matrix 90°).
+        col_start:
+        row_start:
+
+    Returns:
+        dict with {'A1-pos': value for each value in the 2D-matrix}.
+
+    """
+    if transpose:
+        return {pos_fmt.format(row=row, col=col): val
+                for col, cvals in zip(string.ascii_uppercase, matrix)
+                for row, val in enumerate(cvals, col_start)}
+    else:
+        return {pos_fmt.format(row=row, col=col): val
+                for row, rvals in zip(string.ascii_uppercase, matrix)
+                for col, val in enumerate(rvals, col_start)}
 
 
 class BoxScanner:
@@ -193,3 +227,12 @@ class BoxScanner:
 
     def scan_box_image_grid(self, image):
         return scan_barcodes_in_grid(image)
+
+
+class AggregatingBoxScanner(BoxScanner):
+    """
+    Special BoxScanner that is capable of repeatedly acquiring images and scanning for barcodes,
+    building up a grid of barcodes gradually as it gains more information on barcodes and
+    their relative location.
+
+    """

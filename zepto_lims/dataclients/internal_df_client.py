@@ -19,10 +19,14 @@ class InternalDfClient:
     """
 
     def __init__(self, config):
+        # Initialize config-defined data-store. For now, we just always use the CsvDfStore.
         self.datastore = CsvDfStore(config)
 
     def get_table(self, table):
         return self.datastore.get_table(table)
 
-    def set_table(self, table, df):
-        self.datastore.set_table(table, df)
+    def set_table(self, table, df, *, flush):
+        self.datastore.set_table(table, df, flush=flush)
+
+    def append_row(self, table, row):
+        self.datastore.append_row(table, row)
