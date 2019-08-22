@@ -5,7 +5,8 @@
 """
 
 from zepto_lims.trackers.tubetracker import TubeTrackerDf
-from zepto_lims.scanners.boxscanner import BoxScanner, barcode_pos_dict
+from zepto_lims.scanners.boxscanner import BoxScanner
+from zepto_lims.utils.gridpos import val_pos_dict_from_grid
 from zepto_lims.cameras.dummyfilecamera import DummyFileCamera
 
 
@@ -21,7 +22,7 @@ class TubeTrackerAppBase:
     def scan_and_update_box(self):
         image = self.camera.get_image()
         barcodes_grid = self.boxscanner.scan_box_image_grid(image)
-        barcodes_dict = barcode_pos_dict(barcodes_grid)
+        barcodes_dict = val_pos_dict_from_grid(barcodes_grid)
         barcodes_set = set(barcodes_dict.keys())   # Using .keys() is not strictly needed.
         best_box_match = self.tubetracker.get_best_matching_box(barcodes_set)
         answer = input(f"Is the scanned box '{best_box_match}'? [Y/n]").lower()

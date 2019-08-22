@@ -52,7 +52,7 @@ from pprint import pprint
 import pandas as pd
 
 from zepto_lims.dataclients.internal_df_client import InternalDfClient
-from zepto_lims.scanners.boxscanner import barcode_pos_dict
+from zepto_lims.utils.gridpos import val_pos_dict_from_grid
 
 
 class TubeTrackerDf:
@@ -205,7 +205,7 @@ class TubeTrackerDf:
             print(f"Empty `barcodes` value {barcodes}. Aborting.")
             return
         if isinstance(barcodes, list):
-            barcodes = barcode_pos_dict(barcode_grid=barcodes)
+            barcodes = val_pos_dict_from_grid(grid=barcodes)
         tubes_df = self.get_tubes_data()
         boxes_df = self.get_boxes_data()
         # Sanity checks of the provided DataFrames:

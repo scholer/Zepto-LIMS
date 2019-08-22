@@ -11,7 +11,6 @@ TODO: from which all barcodes can be properly read.
 
 """
 
-import string
 import numpy as np
 
 try:
@@ -152,54 +151,6 @@ def scan_barcodes_in_grid(image, grid_params=None):
     grid_images = segment_image_to_grid(image, grid_params)
     grid_barcodes = [[scan_lid_barcode(tube_image) for tube_image in image_row] for image_row in grid_images]
     return grid_barcodes
-
-
-def alphabet_iterator(start='A', take=None):
-    is_upper = start == start.upper()
-    val = ord(start)
-    end = val + take if take is not None else (ord('Z') if is_upper else ord('z'))
-    n_taken = 0
-    while True:
-        yield chr(val)
-        val += 1
-        n_taken += 1
-        if take is not None and take <= n_taken:
-            raise StopIteration
-
-
-def barcode_pos_dict(barcode_grid, pos_fmt="{row}{col:02}", transpose=False, exclude_none=True, col_start=1):
-    if transpose:
-        return {val: pos_fmt.format(row=row, col=col)
-                for col, cvals in zip(string.ascii_uppercase, barcode_grid)
-                for row, val in enumerate(cvals, 1)}
-    else:
-        return {pos_fmt.format(row=row, col=col): val
-                for row, rvals in zip(string.ascii_uppercase, barcode_grid)
-                for col, val in enumerate(rvals, col_start)}
-
-
-def alphanumeric_grid_dict(matrix, pos_fmt="{row}{col:02}", transpose=False, col_start=1, row_start='A'):
-    """ Return a dict with {'A1-pos': value for each value in the 2D-matrix}.
-
-    Args:
-        matrix: 2D matrix, list of lists.
-        pos_fmt: How to format each position (e.g. 'A1' or 'A01').
-        transpose: Transpose columns and rows (flip the matrix 90°).
-        col_start:
-        row_start:
-
-    Returns:
-        dict with {'A1-pos': value for each value in the 2D-matrix}.
-
-    """
-    if transpose:
-        return {pos_fmt.format(row=row, col=col): val
-                for col, cvals in zip(string.ascii_uppercase, matrix)
-                for row, val in enumerate(cvals, col_start)}
-    else:
-        return {pos_fmt.format(row=row, col=col): val
-                for row, rvals in zip(string.ascii_uppercase, matrix)
-                for col, val in enumerate(rvals, col_start)}
 
 
 class BoxScanner:
