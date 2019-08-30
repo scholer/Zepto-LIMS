@@ -63,9 +63,9 @@ def decode_barcode_from_image(image, encoding='utf-8'):
 
     Examples:
 
-        >>> from PIL import Image
+        >>> # from PIL import Image
+        >>> # image = Image.open('datamatrix.png')
         >>> from zepto_lims.scanners.dmtx_reader import decode_barcode_from_image
-        >>> image = Image.open('datamatrix.png')
         >>> decode_barcode_from_image(image)
 
     """
@@ -74,4 +74,3 @@ def decode_barcode_from_image(image, encoding='utf-8'):
         return barcode_data.decode(encoding)
     else:
         return barcode_data
-
