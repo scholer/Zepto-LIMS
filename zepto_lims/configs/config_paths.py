@@ -33,12 +33,21 @@ def get_existing_config_path(name='user', platform=None, create_default=True):
     """
     if platform is None:
         platform = sys.platform
-    paths = CONFIG_PATH_CANDIDATES[platform][name]
+    try:
+        paths = CONFIG_PATH_CANDIDATES[platform][name]
+    except KeyError as exc:
+        print(f"NOTICE: No config path candidates for config '{name}': {exc}")
+        return None
     paths = [pathlib.Path(path) for path in paths]
     path = next((path for path in paths if path.exists()), None)
     if path is None and create_default:
-        path = pathlib.Path(CONFIG_PATH_CANDIDATES[platform][name][0])
-        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            path = pathlib.Path(CONFIG_PATH_CANDIDATES[platform][name][0])
+        except (KeyError, IndexError) as exc:
+            print(f"NOTICE: No config path candidates for config '{name}': {exc}")
+            return None
+        else:
+            path.parent.mkdir(parents=True, exist_ok=True)
     return path
 
 

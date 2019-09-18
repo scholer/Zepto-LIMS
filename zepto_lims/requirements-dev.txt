@@ -1,2 +1,3 @@
 # Optional "development" requirements. Required for running tests, etc.
 pytest
+snoop

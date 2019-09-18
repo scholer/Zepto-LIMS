@@ -27,9 +27,37 @@ and then calculate the best translation between the two grids.
 """
 
 import numpy as np
+# import snoop
+
+from .gridpos import values_coords_tup_from_grid
 
 
-def calc_best_grid_rotation_result(coords1: np.ndarray, coords2: np.ndarray) -> tuple:
+def align_coords_by_values(values1, coords1, values2, coords2):
+    # OBS: Need to make sure the newly-scanned coords are "aligned" with the old,
+    # i.e. we can only use values that are in common, and coords must be in the same order:
+    coords1_by_value = dict(zip(values1, coords1))
+    coords2_by_value = dict(zip(values2, coords2))
+    common_values_set = set(values1) & set(values2)
+    common_values = [val for val in values1 if val in common_values_set]
+    coords1_aligned = np.array([coords1_by_value[val] for val in common_values])
+    coords2_aligned = np.array([coords2_by_value[val] for val in common_values])
+    return coords1_aligned, coords2_aligned
+
+
+def calc_best_grid_rotation_result(grid1, grid2):
+    """ Calculate the best rotation for two discrete grids. """
+    values1, coords1 = values_coords_tup_from_grid(grid1)
+    values2, coords2 = values_coords_tup_from_grid(grid2)
+    return calc_best_values_coords_rotation_result(values1, coords1, values2, coords2)
+
+
+def calc_best_values_coords_rotation_result(values1, coords1, values2, coords2):
+    """ This just aligns the coordinates of shared values before passing to calc_best_coords_rotation_result. """
+    coords1_aligned, coords2_aligned = align_coords_by_values(values1, coords1, values2, coords2)
+    return calc_best_coords_rotation_result(coords1_aligned, coords2_aligned)
+
+
+def calc_best_coords_rotation_result(coords1: np.ndarray, coords2: np.ndarray) -> tuple:
     """ Calculate the optimal rotation to align one set of coordinates onto another set of coordinates.
     This assumes the coordinates are integer-values cooresponding to indices on a 2D grid (e.g. a box grid),
     such that the only valid rotations are multiples of 90° (a quarter revolution).
@@ -55,10 +83,15 @@ def calc_best_grid_rotation_result(coords1: np.ndarray, coords2: np.ndarray) -> 
     OBS: You can use `zepto_lims.utils.gridpos.values_coords_tup_from_val_pos()` to convert
     position-strings ("A01" to coordinates).
     """
+    # print(f"calc_best_grid_rotation_result():")
+    # print(f"  coords2:")
+    # print(coords1)
+    # print(f"  coords1:")
+    # print(coords2)
     rot_results = []
     for rotation in (0, 1, 2, 3):
         # Get rotated coordinates:
-        coords2_rot = rot_90deg(coords2, rotation)
+        coords2_rot = rotate_coords(coords2, rotation)
         # First, calculate global transformation:
         displacements = coords2_rot - coords1  # List of vectors shifting each point from from one coords to the other.
         global_shift = np.mean(displacements, axis=0)
@@ -77,7 +110,28 @@ def calc_best_grid_rotation_result(coords1: np.ndarray, coords2: np.ndarray) -> 
     return sorted(rot_results)[0]  # Result with lowest avg_dist is sorted first
 
 
-def rot_90deg(points, rot90):
+def rotate_coords(coords, rot90):
+    """ Rotate coordinates by an integer of 90° counter-clockwise.
+    coords are (row, col), which visually corresponds to (y, x),
+    and for coords, the y-axis is inverted (down is positive y).
+    so we need this adapter function to convert the two.
+    """
+    row, col = coords[:, 0], coords[:, 1]
+    # coords are in (row, col), which corresponds to (y, x) not (x, y) !
+    xr, yr = rot_90deg(x=col, y=row, rot90=rot90)
+    rot = np.empty_like(coords)
+    rot[:, 1], rot[:, 0] = xr, yr
+    return rot
+
+
+def rotate_points(points, rot90):
+    """ Rotate points, an array of (x, y) positions. """
+    rot = np.empty_like(points)  # np.asarray() will return input if already array
+    rot[:, 1], rot[:, 0] = rot_90deg(x=points[:, 0], y=points[:, 1], rot90=rot90)
+    return rot
+
+
+def rot_90deg(x, y, rot90):
     """ Rotate points by an integer of 90°.
 
     Args:
@@ -88,23 +142,22 @@ def rot_90deg(points, rot90):
         points, after rotation.
     """
     rot90 = rot90 % 4
+    assert rot90 in (0, 1, 2, 3)
     if rot90 == 0:
         # No rotation; just return grid unchanged.
-        return points
-    x, y = points[:, 0], points[:, 1]
+        return x, y
     if rot90 == 1:
         # Rotation 90° counter-clockwise.
         # x-values -> y-values
         # y-values -> negative x-values
-        points[:, 0], points[:, 1] = y, -x
+        return -y, x
     if rot90 == 2:
         # Rotation 180° counter-clockwise.
         # x-values -> negative x-values
         # y-values -> negative y-values
-        points[:, 0], points[:, 1] = -x, -y
+        return -x, -y
     if rot90 == 3:
         # Rotation 270° counter-clockwise = 90° clockwise.
         # x-values -> negative y-values
         # y-values -> x-values
-        points[:, 0], points[:, 1] = -y, x
-    return points
+        return y, -x

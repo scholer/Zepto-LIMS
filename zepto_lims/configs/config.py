@@ -63,22 +63,32 @@ class ZeptoAppConfig:
 
     def __init__(
             self,
-            system_config=None,
-            user_config=None,
-            runtime_config=None,
-            use_standard_configs=('runtime', 'user', 'system'),
+            runtime=None,
+            user=None,
+            system=None,
+            default=None,
+            use_standard_configs=('runtime', 'user', 'system', 'default'),
+            readonly_configs=('system', 'default'),
             **other_configs
     ):
-        self.configs = OrderedDict(**{name: ZeptoFileConfig(val, name=name) for name, val in other_configs.items()})
+        self.configs = OrderedDict(**{
+            name: ZeptoFileConfig(val, name=name, readonly=(name in readonly_configs))
+            for name, val in other_configs.items()
+        })
         for name, val in (
-                ('runtime', runtime_config),
-                ('user', user_config),
-                ('system', system_config),
+                ('runtime', runtime),
+                ('user', user),
+                ('system', system),
+                ('default', default),
         ):
             if use_standard_configs and name in use_standard_configs:
                 if val is None:
                     val = get_existing_config_path(name=name)
-                self.configs[name] = ZeptoFileConfig(val, name=name)
+                if val is None:
+                    print(f"OBS: No filepath defined for '{name}' config, skipping...")
+                    continue
+                # val can be either a filepath, a data-dict, or a (filepath, data-dict) tuple.
+                self.configs[name] = ZeptoFileConfig(val, name=name, readonly=(name in readonly_configs))
 
     def get_containing_config(self, key, skip_none=True):
         for name, cfg_obj in self.configs.items():
@@ -98,6 +108,11 @@ class ZeptoAppConfig:
 
         return val if val is not None else default
 
+    def print_configs(self):
+        print("Configs:")
+        for name, zfc in self.configs.items():
+            print(f" - {name} [{zfc.filepath}]: {len(zfc.data)} keys")
+
 
 class ZeptoFileConfig:
     """ A "sub-config" class for use by ZeptoAppConfig.
@@ -108,7 +123,8 @@ class ZeptoFileConfig:
 
     """
 
-    def __init__(self, *args, data=None, filepath=None, name=None):
+    def __init__(self, *args, data=None, filepath=None, name=None, readonly=False):
+        print(f"{ZeptoFileConfig.__class__}:\n     args = {args}\n     data = {data}\n filepath = {filepath}\n     name = {name}")
         if isinstance(args[0], (tuple, list)):
             args = args[0]
         for arg in args:
@@ -124,6 +140,7 @@ class ZeptoFileConfig:
         self.filepath = filepath
         self.file_stat_on_load = None
         self.name = name
+        self.readonly = readonly
         if data is None:
             self.load_from_file()
 
@@ -139,5 +156,8 @@ class ZeptoFileConfig:
             self.file_stat_on_load = pathlib.Path(filepath).stat()
         return self.data
 
-    def get(self, key, default):
+    def get(self, key, default=None):
         return get_by_dot_notation(self.data, key, default=default)
+
+    def __str__(self):
+        return f"{type(self).__class__} '{self.name}' [{self.filepath}] containing {len(self.data)} keys."

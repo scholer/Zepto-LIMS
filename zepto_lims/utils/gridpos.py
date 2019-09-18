@@ -86,23 +86,6 @@ def values_coords_tup_from_grid(grid, exclude=(None, np.NaN), unique=True) -> tu
     return vals, np.array(coords)
 
 
-def val_pos_dict_from_values_coords(
-        values_coords: tuple,
-        a01_coord: tuple = (0, 0),
-        pos_fmt: str = "{row}{col:02}",
-        transpose: bool = False
-) -> dict:
-    """ Convert a (values, coords) tuple to {val: pos-str} dict. """
-    row_offset, col_offset = a01_coord
-    if transpose:
-        def pos_str(row: int, col: int) -> str:
-            return pos_fmt.format(row=col, col=row)
-    else:
-        def pos_str(row: int, col: int) -> str:
-            return pos_fmt.format(row=row, col=col)
-    return {val: pos_str(row+row_offset, col+col_offset) for val, (row, col) in values_coords}
-
-
 def values_coords_tup_from_val_pos(
         val_pos_dict: dict,
         a01_coord: tuple = (0, 0),
@@ -141,6 +124,23 @@ def values_coords_tup_from_val_pos(
     values, coords = zip(*[(val, coord_from_pos(pos)) for val, pos in val_pos_dict.items()])
     coords = np.array(coords)
     return values, coords
+
+
+def val_pos_dict_from_values_coords(
+        values_coords: tuple,
+        a01_coord: tuple = (0, 0),
+        pos_fmt: str = "{row}{col:02}",
+        transpose: bool = False
+) -> dict:
+    """ Convert a (values, coords) tuple to {val: pos-str} dict. """
+    row_offset, col_offset = a01_coord
+    if transpose:
+        def pos_str(row: int, col: int) -> str:
+            return pos_fmt.format(row=col, col=row)
+    else:
+        def pos_str(row: int, col: int) -> str:
+            return pos_fmt.format(row=row, col=col)
+    return {val: pos_str(row+row_offset, col+col_offset) for val, (row, col) in values_coords}
 
 
 def val_pos_dict_from_grid(

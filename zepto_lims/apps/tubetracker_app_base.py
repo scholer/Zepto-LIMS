@@ -8,13 +8,16 @@ from zepto_lims.trackers.tubetracker import TubeTrackerDf
 from zepto_lims.scanners.boxscanner import BoxScanner
 from zepto_lims.utils.gridpos import val_pos_dict_from_grid
 from zepto_lims.cameras.dummyfilecamera import DummyFileCamera
+from zepto_lims.configs.config import ZeptoAppConfig
+from zepto_lims.configs.default_config import DEFAULTS
 
 
 class TubeTrackerAppBase:
 
-    def __init__(self, config, config_file):
+    def __init__(self, config=None):
+        if config is None:
+            config = ZeptoAppConfig()
         self.config = config
-        self.config_file = config_file
         self.tubetracker = TubeTrackerDf(config)
         self.boxscanner = BoxScanner(config)
         self.camera = DummyFileCamera(config)
@@ -34,6 +37,8 @@ class TubeTrackerAppBase:
             boxname = best_box_match
         self.tubetracker.update_tubes_from_barcodes(boxname, barcodes_dict)
 
+    def add_box(self, boxname):
+        self.tubetracker.add_box(boxname)
 
     # def scan_box_barcodes_and_update_database(self):
     #     image = self.camera.
