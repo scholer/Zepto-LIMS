@@ -10,16 +10,12 @@ from zepto_lims.utils.transformation import calc_best_grid_rotation_result, alig
 from zepto_lims.utils.transformation import rot_90deg, rotate_coords
 from zepto_lims.utils.gridpos import values_coords_tup_from_grid
 
-
-from .test_utils_gridpos import TEST_GRID_3x3, TEST_GRID_3x3_rot90, TEST_GRID_3x3_rot180, TEST_GRID_3x3_rot270
-from .test_utils_gridpos import TEST_GRID_3x3_values, TEST_GRID_3x3_rot90_values, TEST_GRID_3x3_rot180_values, TEST_GRID_3x3_rot270_values
-from .test_utils_gridpos import TEST_GRID_3x3_coords, TEST_GRID_3x3_rot90_coords, TEST_GRID_3x3_rot180_coords, TEST_GRID_3x3_rot270_coords
-from .test_utils_gridpos import TEST_GRID_3x3_rot90_coords_aligned, TEST_GRID_3x3_rot180_coords_aligned, TEST_GRID_3x3_rot270_coords_aligned
-from .test_utils_gridpos import (
-    TEST_GRID_3x3_rot90_coords_aligned_origin,
-    TEST_GRID_3x3_rot180_coords_aligned_origin,
+from tests.testdata.boxscans import TEST_GRID_3x3, TEST_GRID_3x3_values, TEST_GRID_3x3_coords, TEST_GRID_3x3_rot90, \
+    TEST_GRID_3x3_rot90_values, TEST_GRID_3x3_rot90_coords, TEST_GRID_3x3_rot90_coords_aligned, \
+    TEST_GRID_3x3_rot90_coords_aligned_origin, TEST_GRID_3x3_rot180, TEST_GRID_3x3_rot180_values, \
+    TEST_GRID_3x3_rot180_coords, TEST_GRID_3x3_rot180_coords_aligned, TEST_GRID_3x3_rot180_coords_aligned_origin, \
+    TEST_GRID_3x3_rot270, TEST_GRID_3x3_rot270_values, TEST_GRID_3x3_rot270_coords, TEST_GRID_3x3_rot270_coords_aligned, \
     TEST_GRID_3x3_rot270_coords_aligned_origin
-)
 
 
 def test_align_coords_by_values():
@@ -115,5 +111,3 @@ def test_calc_best_grid_rotation_result():
     print(avg_dist, rotation, global_shift)
     assert avg_dist == 0
     assert rotation == 0  # Rotation is in units of 90° (counter-clockwise)
-
-

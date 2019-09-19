@@ -89,7 +89,7 @@ def values_coords_tup_from_grid(grid, exclude=(None, np.NaN), unique=True) -> tu
 def values_coords_tup_from_val_pos(
         val_pos_dict: dict,
         a01_coord: tuple = (0, 0),
-        pos_regex: str = r"(?P<row>)[A-z])(?P<col>\d+)",
+        pos_regex: str = r"(?P<row>[A-z])(?P<col>\d+)",
         transpose: bool = False
 ) -> tuple:
     """ Convert a {val: pos-str} dict to (values, coords) tuple, where coords is a nx2 matrix.

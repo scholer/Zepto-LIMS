@@ -4,7 +4,7 @@
 
 """
 
-import tempfile
+# import tempfile
 import yaml
 
 from zepto_lims.configs.config import get_by_dot_notation, ZeptoAppConfig, ZeptoFileConfig
@@ -70,5 +70,3 @@ def test_zeptoappconfig_01():
     assert zac.get('one.two.three') == 'abc'  # from runtime config
     assert zac.get('one.more') == 'time'  # from user config
     assert zac.get('a.b.c') == 'xyz'  # from user config
-
-
