@@ -5,6 +5,9 @@
 
 
 pandas
+pyyaml
+click
+
 
 # pytest
 # flask

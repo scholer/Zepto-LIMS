@@ -148,16 +148,19 @@ def rot_90deg(x, y, rot90):
         return x, y
     if rot90 == 1:
         # Rotation 90° counter-clockwise.
+        # (2, 1) -> (-1, 2)
         # x-values -> y-values
         # y-values -> negative x-values
         return -y, x
     if rot90 == 2:
         # Rotation 180° counter-clockwise.
+        # (2, 1) -> (-1, -2)
         # x-values -> negative x-values
         # y-values -> negative y-values
         return -x, -y
     if rot90 == 3:
         # Rotation 270° counter-clockwise = 90° clockwise.
+        # (2, 1) -> (1, -2)
         # x-values -> negative y-values
         # y-values -> x-values
         return y, -x

@@ -5,6 +5,8 @@
 
 pylibdmtx
 pandas
+pyyaml
+click
 
 #pillow
 #opencv

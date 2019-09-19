@@ -52,7 +52,8 @@ from pprint import pprint
 import pandas as pd
 
 from zepto_lims.dataclients.internal_df_client import InternalDfClient
-from zepto_lims.utils.gridpos import val_pos_dict_from_grid
+from zepto_lims.utils.gridpos import val_pos_dict_from_grid, values_coords_tup_from_val_pos
+from zepto_lims.utils.transformation import calc_best_values_coords_rotation_result
 
 
 class TubeTrackerDf:
@@ -98,13 +99,22 @@ class TubeTrackerDf:
         """ Retrieve a pandas DataFrame with all tubes (for the currently-selected user). """
         self.data_client.set_table(self.boxes_table_name, df, flush=flush)
 
-    def get_box_tubes(self):
+    def get_box_tubes(self, boxname):
+        """ Get dataframe with tubes in a single box. """
+        df = self.get_tubes_data()
+        return df.loc[df['boxname'] == boxname, :]
+
+    def get_barcode_val_pos_for_box(self, boxname):
+        df = self.get_box_tubes(boxname)
+        return dict(zip(df['barcode'], df['pos']))
+
+    def get_tubes_groupedby_box(self):
         """ Reference function for how to group a pandas DataFrame. """
         tubes_df = self.get_tubes_data()
         return tubes_df.groupby('boxname')
 
     def get_box_tubebarcodesets(self):
-        # tubes_by_box = self.get_box_tubes()  # tubes grouped by boxes
+        # tubes_by_box = self.get_tubes_groupedby_box()  # tubes grouped by boxes
         tubes_df = self.get_tubes_data()
         boxes_barcodesets = {boxname: set(group_df['barcode'].values)
                                for boxname, group_df in tubes_df.groupby('boxname')}
@@ -129,6 +139,7 @@ class TubeTrackerDf:
         return boxes_diff
 
     def get_best_matching_boxes(self, barcodes_set):
+        """ Compare all boxes' barcodes with the given barcodes_set. """
         boxes_diff = self.get_boxes_diff(barcodes_set)
         boxes_diff_count = OrderedDict((
             boxname, (len(common), len(added), len(removed), len(common) - 0.2*len(added) - 0.1*len(removed))
@@ -150,6 +161,7 @@ class TubeTrackerDf:
         return boxes_diff_count_df
 
     def get_best_matching_box(self, barcodes_set):
+        """ Get the box with most barcodes in common with the given barcodes_set. """
         boxes_diff_count_df = self.get_best_matching_boxes(barcodes_set)
         if len(boxes_diff_count_df) == 0:
             print("Did not find any existng boxes.")
@@ -160,6 +172,16 @@ class TubeTrackerDf:
             print("OK; please create a new box for the scanned tube.")
             return
         return best_box
+
+    def get_best_box_rotation(self, boxname, barcodes_val_pos_dict):
+        existing_val_pos_dict = self.get_barcode_val_pos_for_box(boxname)
+        values1, coords1 = values_coords_tup_from_val_pos(existing_val_pos_dict)
+        values2, coords2 = values_coords_tup_from_val_pos(barcodes_val_pos_dict)
+        avg_dist, rotation, global_shift = calc_best_values_coords_rotation_result(
+            values1, coords1, values2, coords2
+        )
+        return avg_dist, rotation, global_shift
+
 
     def add_box(self, boxname):
         """ Add a new box to the boxes table.

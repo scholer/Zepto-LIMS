@@ -16,7 +16,7 @@ class TubeTrackerAppBase:
 
     def __init__(self, config=None):
         if config is None:
-            config = ZeptoAppConfig()
+            config = ZeptoAppConfig(default=DEFAULTS)
         self.config = config
         self.tubetracker = TubeTrackerDf(config)
         self.boxscanner = BoxScanner(config)
@@ -25,7 +25,7 @@ class TubeTrackerAppBase:
     def scan_and_update_box(self):
         image = self.camera.get_image()
         barcodes_grid = self.boxscanner.scan_box_image_grid(image)
-        barcodes_dict = val_pos_dict_from_grid(barcodes_grid)
+        barcodes_dict = val_pos_dict_from_grid(barcodes_grid)  # {barcode: pos} dict
         barcodes_set = set(barcodes_dict.keys())   # Using .keys() is not strictly needed.
         best_box_match = self.tubetracker.get_best_matching_box(barcodes_set)
         answer = input(f"Is the scanned box '{best_box_match}'? [Y/n]").lower()
@@ -35,6 +35,17 @@ class TubeTrackerAppBase:
             boxname = input("Please type the name of the box: ")
         else:
             boxname = best_box_match
+            avg_dist, rotation, global_shift = self.tubetracker.get_best_box_rotation(
+                boxname=best_box_match, barcodes_val_pos_dict=barcodes_dict
+            )
+            if rotation != 0:
+                print("The scanned box was rotated since it was last scanned.")
+                print("avg_dist, rotation, global_shift:", [avg_dist, rotation, global_shift])
+                old_or_new = input("Would you like to use OLD rotation or NEW rotation? [o/N]  ").lower() or 'n'
+                use_old_rotation = (old_or_new[0] == 'o')
+                if use_old_rotation:
+                    # This requires rotating the barcodes_grid,
+                    print("Sorry, using old rotation is not yet supported.")
         self.tubetracker.update_tubes_from_barcodes(boxname, barcodes_dict)
 
     def add_box(self, boxname):

@@ -51,6 +51,13 @@ def test_align_coords_by_values():
 
 
 def test_rot_90deg():
+
+    x, y = 2, 1
+    assert rot_90deg(x, y, rot90=0) == (2, 1)
+    assert rot_90deg(x, y, rot90=1) == (-1, 2)
+    assert rot_90deg(x, y, rot90=2) == (-2, -1)
+    assert rot_90deg(x, y, rot90=3) == (1, -2)
+
     points = np.array([
         (0, 0),
         (1, 0),
