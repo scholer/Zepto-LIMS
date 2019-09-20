@@ -11,6 +11,7 @@ TODO: from which all barcodes can be properly read.
 
 """
 
+from collections import namedtuple
 import numpy as np
 
 try:
@@ -53,11 +54,15 @@ def segment_image_to_grid(image, grid_params):
     Actually, maybe this could be done by re-shaping to a 4D matrix?
     Except there may be some rounding errors because the number of pixels may not be
     a multiple of the grid shape?
+
     Grid-params is expected as one of the following:
     * A GridParams namedtuple with `top`, `bottom`, `left`, `right`, `grid_shape` attributes.
     * A 5-element tuple: (top, bottom, left, right, grid_shape)
+    * A dict, with items: 'margin', 'shape', 'type'
+        * Currently, we only support type='rectangle', but not type='square'.
     If `grid_shape` is an integer, e.g. 10, the grid_shape is a 10x10 square.
     Otherwise, `grid_shape` is a two-tuple with (width, height).
+
     """
 
     # if is_pil_image(image):
@@ -66,7 +71,14 @@ def segment_image_to_grid(image, grid_params):
     # Probably better to always just cast as numpy array:
     image = np.array(image)
     print("image.shape", image.shape)
-    top, bottom, left, right, grid_shape = grid_params
+    if isinstance(grid_params, (tuple, namedtuple)):
+        top, bottom, left, right, grid_shape = grid_params
+    elif isinstance(grid_params, dict):
+        top, bottom, left, right = grid_params['margin']
+        grid_shape = grid_params['shape']
+        grid_type = grid_params.get('type', 'rectangular')
+    else:
+        raise TypeError(f"Unrecognized type {type(grid_params)} for argument `grid_params` = {grid_params}.")
     if isinstance(grid_shape, int):
         grid_shape = (grid_shape, grid_shape)
     original_height, original_width = image.shape
@@ -115,16 +127,17 @@ def segment_image_to_grid(image, grid_params):
     height, width = im_cropped.shape
     print("im_cropped.shape:", im_cropped.shape)
     print("nrows, ncols:", nrows, ncols)
-    print("height, width:", height, width)
+    print("image height, width:", height, width)
 
     im_grid = [[
             im_cropped[
                 int(height*r/nrows):int(height*(r+1)/nrows),
-                int(width*c/ncols):int(height*(c+1)/ncols)
+                int(width*c/ncols):int(width*(c+1)/ncols)
             ]
             for c in range(ncols)]
         for r in range(nrows)
     ]
+    print("segment shapes:", [[im.shape for im in row] for row in im_grid])
     return im_grid
 
 
@@ -157,6 +170,8 @@ class BoxScanner:
 
     def __init__(self, config):
         self.config = config
+        self.last_box_scan = None
+        self.best_box_scan = None
 
     @property
     def box_margin(self):
@@ -177,7 +192,11 @@ class BoxScanner:
         return self.box_margin + (self.box_grid,)
 
     def scan_box_image_grid(self, image):
-        return scan_barcodes_in_grid(image)
+        grid_barcodes = scan_barcodes_in_grid(image=image, grid_params=self.box_grid_params)
+        self.last_box_scan = grid_barcodes
+        if self.best_box_scan is None or self.best_box_scan <= len(grid_barcodes):
+            self.best_box_scan = grid_barcodes
+        return grid_barcodes
 
 
 class AggregatingBoxScanner(BoxScanner):

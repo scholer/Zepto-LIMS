@@ -1,0 +1,24 @@
+# This file lists *all* packages that I've found useful during development.
+
+# Barcode scanning:
+pylibdmtx
+
+# Graphics:
+pillow
+opencv
+
+# Data processing, visualization:
+conpandas
+matplotlib
+notebook
+
+# GUI frameworks:
+pyqt5
+
+# Standard dev packages:
+pytest
+
+# Other standard packages:
+click
+pyyaml
+

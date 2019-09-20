@@ -125,7 +125,16 @@ def rotate_coords(coords, rot90):
 
 
 def rotate_points(points, rot90):
-    """ Rotate points, an array of (x, y) positions. """
+    """ Rotate points, an array of (x, y) positions.
+
+    Args:
+        points: A matrix with shape (n, 2) specifying n points on a 2D plane.
+        rot90: The rotation, in multiples of 90° (i.e. the number of quater-turns).
+
+    Returns:
+        points, after rotation.
+
+    """
     rot = np.empty_like(points)  # np.asarray() will return input if already array
     rot[:, 1], rot[:, 0] = rot_90deg(x=points[:, 0], y=points[:, 1], rot90=rot90)
     return rot
@@ -135,11 +144,12 @@ def rot_90deg(x, y, rot90):
     """ Rotate points by an integer of 90°.
 
     Args:
-        points: A matrix with shape (n, 2) specifying n points on a 2D plane.
-        rot90: The rotation, in multiples of 90° (i.e. the number of quater-turns).
+        x: x-coordinate.
+        y: y-coordinate.
+        rot90: Rotation, in units of 90° (integer).
 
     Returns:
-        points, after rotation.
+        (x, y) after rotation.
     """
     rot90 = rot90 % 4
     assert rot90 in (0, 1, 2, 3)
