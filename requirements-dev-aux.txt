@@ -8,7 +8,7 @@ pillow
 opencv
 
 # Data processing, visualization:
-conpandas
+pandas
 matplotlib
 notebook
 

@@ -69,6 +69,7 @@ def segment_image_to_grid(image, grid_params):
     #     image = np.array(image)
     # This doesn't work for opencv images from cv2.imread.
     # Probably better to always just cast as numpy array:
+    assert image
     image = np.array(image)
     print("image.shape", image.shape)
     if isinstance(grid_params, (tuple, namedtuple)):
